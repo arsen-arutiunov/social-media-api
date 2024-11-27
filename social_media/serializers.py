@@ -6,7 +6,27 @@ from social_media.models import Post, Profile, Follow, Hashtag, Like, Comment
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ["id", "bio", "profile_picture", "created_at", "updated_at"]
+        fields = ["id",
+                  "username",
+                  "first_name",
+                  "last_name",
+                  "bio",
+                  "profile_picture",
+                  "created_at",
+                  "updated_at"]
+
+
+class ProfileListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ["id",
+                  "username",
+                  "full_name",
+                  "bio",
+                  "profile_picture",
+                  "created_at"]
+
+        ordering = ["username"]
 
 
 class FollowSerializer(serializers.ModelSerializer):
@@ -23,7 +43,13 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
-            "id", "content", "media", "hashtags", "created_at", "updated_at"
+            "id",
+            "user",
+            "content",
+            "media",
+            "hashtags",
+            "created_at",
+            "updated_at"
         ]
 
     def create(self, validated_data):
