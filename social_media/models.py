@@ -1,4 +1,5 @@
 from django.db import models
+from pkg_resources import require
 
 from user.models import User
 
