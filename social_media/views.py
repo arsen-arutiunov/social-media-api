@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, permissions, viewsets
 
 
@@ -87,6 +88,24 @@ class LikeViewSet(viewsets.GenericViewSet,
         serializer.save(user=self.request.user)
 
 
+@extend_schema_view(
+    retrieve=extend_schema(
+        summary="Get a comment by id",
+        description="Get a comment by ID."
+    ),
+    update=extend_schema(
+        summary="Update a comment by id",
+        description="Update a comment by ID."
+    ),
+    partial_update=extend_schema(
+        summary="Partial update a comment by id",
+        description="Partially update comment by ID."
+    ),
+    destroy=extend_schema(
+        summary="Delete a comment by id",
+        description="Delete a comment by ID."
+    )
+)
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -97,3 +116,17 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @extend_schema(
+        summary="Get comments",
+        description="Returns the comments of the post",
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        summary="Create a comment",
+        description="Creates a new comment",
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
