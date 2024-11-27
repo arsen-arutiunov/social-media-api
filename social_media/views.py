@@ -1,7 +1,10 @@
 from django.shortcuts import get_object_or_404
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
-from rest_framework import mixins, permissions, viewsets, status, generics
+from drf_spectacular.utils import (
+    extend_schema,
+    extend_schema_view,
+    OpenApiParameter
+)
+from rest_framework import mixins, permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -55,6 +58,10 @@ from user.models import User
         summary="Partial update a profile by id",
         description="Partially update a profile by id.",
     ),
+    destroy=extend_schema(
+        summary="Delete a profile by id",
+        description="Delete a profile by id.",
+    )
 )
 class ProfileViewSet(
     viewsets.GenericViewSet,
@@ -62,6 +69,7 @@ class ProfileViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
 ):
     queryset = Profile.objects.all()
     permission_classes = [permissions.IsAuthenticated]
@@ -280,7 +288,12 @@ class LikeViewSet(
         return Like.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        post = serializer.validated_data["post"]
+        user = self.request.user
+
+        if Like.objects.filter(user=user, post=post).exists():
+            raise ValidationError("You have already liked this post.")
+        serializer.save(user=user)
 
 
 @extend_schema_view(
