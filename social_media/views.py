@@ -7,14 +7,16 @@ from social_media.models import (
     Profile,
     Follow,
     Like,
-    Comment, Hashtag,
+    Comment,
+    Hashtag,
 )
 from social_media.serializers import (
     ProfileSerializer,
     FollowSerializer,
     PostSerializer,
     LikeSerializer,
-    CommentSerializer, HashtagSerializer,
+    CommentSerializer,
+    HashtagSerializer,
 )
 
 
@@ -42,13 +44,15 @@ from social_media.serializers import (
     destroy=extend_schema(
         summary="Delete a profile by id",
         description="Delete a profile by id.",
-    )
+    ),
 )
-class ProfileViewSet(viewsets.GenericViewSet,
-                     mixins.RetrieveModelMixin,
-                     mixins.CreateModelMixin,
-                     mixins.ListModelMixin,
-                     mixins.UpdateModelMixin):
+class ProfileViewSet(
+    viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.UpdateModelMixin,
+):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -67,12 +71,22 @@ class ProfileViewSet(viewsets.GenericViewSet,
     destroy=extend_schema(
         summary="Delete a follow",
         description="This endpoint deletes a follow.",
-    )
+    ),
+    list=extend_schema(
+        summary="Get follows",
+        description="Returns the follows",
+    ),
+    create=extend_schema(
+        summary="Create a follow",
+        description="Creates a new follow",
+    ),
 )
-class FollowViewSet(viewsets.GenericViewSet,
-                    mixins.ListModelMixin,
-                    mixins.CreateModelMixin,
-                    mixins.DestroyModelMixin):
+class FollowViewSet(
+    viewsets.GenericViewSet,
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+):
     serializer_class = FollowSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -86,20 +100,6 @@ class FollowViewSet(viewsets.GenericViewSet,
         following_id = self.kwargs.get("pk")
         return Follow.objects.get(follower=self.request.user,
                                   following_id=following_id)
-
-    @extend_schema(
-        summary="Get follows",
-        description="Returns the follows",
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @extend_schema(
-        summary="Create a follow",
-        description="Creates a new follow",
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
 
 @extend_schema_view(
@@ -126,7 +126,7 @@ class FollowViewSet(viewsets.GenericViewSet,
     list=extend_schema(
         summary="Get list of posts",
         description="Returns the list of posts.",
-    )
+    ),
 )
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
@@ -150,20 +150,16 @@ class PostViewSet(viewsets.ModelViewSet):
     ),
     partial_update=extend_schema(
         summary="Partial update a hashtag by id",
-        description="Partially update hashtag by ID."
+        description="Partially update hashtag by ID.",
     ),
     destroy=extend_schema(
         summary="Delete a hashtag by id",
         description="Delete a hashtag by ID."
     ),
-    create=extend_schema(
-        summary="Create a hashtag",
-        description="Create new hashtag."
-    ),
-    list=extend_schema(
-        summary="List all hashtags",
-        description="Return all hashtags."
-    )
+    create=extend_schema(summary="Create a hashtag",
+                         description="Create new hashtag."),
+    list=extend_schema(summary="List all hashtags",
+                       description="Return all hashtags."),
 )
 class HashtagViewSet(viewsets.ModelViewSet):
     queryset = Hashtag.objects.all()
@@ -175,12 +171,22 @@ class HashtagViewSet(viewsets.ModelViewSet):
     destroy=extend_schema(
         summary="Delete a like",
         description="This endpoint deletes a like.",
-    )
+    ),
+    list=extend_schema(
+        summary="Get likes",
+        description="Returns the likes of the post",
+    ),
+    create=extend_schema(
+        summary="Create a like",
+        description="Creates a new like",
+    ),
 )
-class LikeViewSet(viewsets.GenericViewSet,
-                  mixins.CreateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin):
+class LikeViewSet(
+    viewsets.GenericViewSet,
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+):
     serializer_class = LikeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -189,20 +195,6 @@ class LikeViewSet(viewsets.GenericViewSet,
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-    @extend_schema(
-        summary="Get likes",
-        description="Returns the likes of the post",
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @extend_schema(
-        summary="Create a like",
-        description="Creates a new like",
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
 
 
 @extend_schema_view(
@@ -216,34 +208,28 @@ class LikeViewSet(viewsets.GenericViewSet,
     ),
     partial_update=extend_schema(
         summary="Partial update a comment by id",
-        description="Partially update comment by ID."
+        description="Partially update comment by ID.",
     ),
     destroy=extend_schema(
         summary="Delete a comment by id",
         description="Delete a comment by ID."
-    )
+    ),
+    list=extend_schema(
+        summary="Get comments",
+        description="Returns the comments of the post",
+    ),
+    create=extend_schema(
+        summary="Create a comment",
+        description="Creates a new comment",
+    ),
 )
 class CommentViewSet(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        post_id = self.kwargs.get('post_id')
+        post_id = self.kwargs.get("post_id")
         return Comment.objects.filter(post_id=post_id)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-    @extend_schema(
-        summary="Get comments",
-        description="Returns the comments of the post",
-    )
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @extend_schema(
-        summary="Create a comment",
-        description="Creates a new comment",
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
