@@ -1,6 +1,11 @@
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import mixins, permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from rest_framework import mixins, permissions, viewsets, status, generics
+from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from social_media.models import (
     Post,
@@ -17,13 +22,22 @@ from social_media.serializers import (
     LikeSerializer,
     CommentSerializer,
     HashtagSerializer,
+    ProfileListSerializer,
 )
+from user.models import User
 
 
 @extend_schema_view(
     list=extend_schema(
         summary="Get list of profiles",
         description="Return list of profiles.",
+        parameters=[
+            OpenApiParameter(
+                name="username",
+                type={"type": "string"},
+                description="Full or part of username of the profile",
+            )
+        ],
     ),
     create=extend_schema(
         summary="Create a new profile",
@@ -41,10 +55,6 @@ from social_media.serializers import (
         summary="Partial update a profile by id",
         description="Partially update a profile by id.",
     ),
-    destroy=extend_schema(
-        summary="Delete a profile by id",
-        description="Delete a profile by id.",
-    ),
 )
 class ProfileViewSet(
     viewsets.GenericViewSet,
@@ -54,20 +64,30 @@ class ProfileViewSet(
     mixins.UpdateModelMixin,
 ):
     queryset = Profile.objects.all()
-    serializer_class = ProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        return Profile.objects.all()
+        username = self.request.query_params.get("username")
+        queryset = self.queryset
+
+        if username:
+            queryset = queryset.filter(username__icontains=username)
+        return queryset.distinct()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return ProfileListSerializer
+        return ProfileSerializer
 
     def get_object(self):
         profile = super().get_object()
-        if self.action in [
-            "update", "partial_update", "destroy"
-        ] and profile.user != self.request.user:
+        if (
+            self.action in ["update", "partial_update", "destroy"]
+            and profile.user != self.request.user
+        ):
             raise PermissionDenied("You can only edit your profile.")
         return profile
 
@@ -96,15 +116,44 @@ class FollowViewSet(
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+
         return Follow.objects.filter(follower=self.request.user)
 
     def perform_create(self, serializer):
+        following = serializer.validated_data.get("following")
+        if Follow.objects.filter(
+            follower=self.request.user, following=following
+        ).exists():
+            raise ValidationError("You are already subscribed to this user.")
         serializer.save(follower=self.request.user)
 
-    def get_object(self):
-        following_id = self.kwargs.get("pk")
-        return Follow.objects.get(follower=self.request.user,
-                                  following_id=following_id)
+    def destroy(self, request, *args, **kwargs):
+
+        instance = get_object_or_404(
+            Follow,
+            follower=self.request.user,
+            following_id=kwargs.get("pk"),
+        )
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def list(self, request, *args, **kwargs):
+
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @staticmethod
+    def _get_follow_queryset(user, related_name):
+        return User.objects.filter(**{f"{related_name}__follower": user}).distinct()
+
+    def following_list(self, request, *args, **kwargs):
+        queryset = self._get_follow_queryset(request.user, "following")
+        return Response({"following": [user.email for user in queryset]})
+
+    def followers_list(self, request, *args, **kwargs):
+        queryset = self._get_follow_queryset(request.user, "followers")
+        return Response({"followers": [user.email for user in queryset]})
 
 
 @extend_schema_view(
@@ -135,36 +184,68 @@ class FollowViewSet(
 )
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Post.objects.filter(user=self.request.user)
+        user = self.request.user
+        following_users = user.following.values_list("following", flat=True)
+        return Post.objects.filter(
+            user__id__in=following_users
+        ).order_by("-created_at")
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @extend_schema(
+        summary="Get my posts",
+        description="Returns my posts.",
+    )
+    @action(detail=False, methods=["get"], url_path="my-posts")
+    def my_posts(self, request):
+        posts = Post.objects.filter(user=request.user).order_by("-created_at")
+        serializer = self.get_serializer(posts, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary="Get posts by hashtag",
+        description="Returns the posts by hashtag.",
+        parameters=[
+            OpenApiParameter(
+                name="hashtag",
+                type={"type": "string"},
+                required=True,
+                description="The hashtag of the post.",
+            )
+        ]
+    )
+    @action(detail=False, methods=["get"], url_path="hashtag-posts")
+    def hashtag_posts(self, request):
+        hashtag = request.query_params.get("hashtag")
+        if hashtag:
+            posts = Post.objects.filter(
+                hashtags__name=hashtag
+            ).order_by("-created_at")
+            serializer = self.get_serializer(posts, many=True)
+            return Response(serializer.data)
+        return Response({"detail": "Hashtag not provided"}, status=400)
+
 
 @extend_schema_view(
     retrieve=extend_schema(
-        summary="Get a hashtag by id",
-        description="Return a hashtag by ID."
+        summary="Get a hashtag by id", description="Return a hashtag by ID."
     ),
     update=extend_schema(
-        summary="Update a hashtag by id",
-        description="Update a hashtag by ID."
+        summary="Update a hashtag by id", description="Update a hashtag by ID."
     ),
     partial_update=extend_schema(
         summary="Partial update a hashtag by id",
         description="Partially update hashtag by ID.",
     ),
     destroy=extend_schema(
-        summary="Delete a hashtag by id",
-        description="Delete a hashtag by ID."
+        summary="Delete a hashtag by id", description="Delete a hashtag by ID."
     ),
-    create=extend_schema(summary="Create a hashtag",
-                         description="Create new hashtag."),
-    list=extend_schema(summary="List all hashtags",
-                       description="Return all hashtags."),
+    create=extend_schema(summary="Create a hashtag", description="Create new hashtag."),
+    list=extend_schema(summary="List all hashtags", description="Return all hashtags."),
 )
 class HashtagViewSet(viewsets.ModelViewSet):
     queryset = Hashtag.objects.all()
@@ -204,20 +285,17 @@ class LikeViewSet(
 
 @extend_schema_view(
     retrieve=extend_schema(
-        summary="Get a comment by id",
-        description="Get a comment by ID."
+        summary="Get a comment by id", description="Get a comment by ID."
     ),
     update=extend_schema(
-        summary="Update a comment by id",
-        description="Update a comment by ID."
+        summary="Update a comment by id", description="Update a comment by ID."
     ),
     partial_update=extend_schema(
         summary="Partial update a comment by id",
         description="Partially update comment by ID.",
     ),
     destroy=extend_schema(
-        summary="Delete a comment by id",
-        description="Delete a comment by ID."
+        summary="Delete a comment by id", description="Delete a comment by ID."
     ),
     list=extend_schema(
         summary="Get comments",
