@@ -1,6 +1,6 @@
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, permissions, viewsets
-
+from rest_framework.exceptions import PermissionDenied
 
 from social_media.models import (
     Post,
@@ -61,10 +61,15 @@ class ProfileViewSet(
         serializer.save(user=self.request.user)
 
     def get_queryset(self):
-        return Profile.objects.filter(user=self.request.user)
+        return Profile.objects.all()
 
     def get_object(self):
-        return self.request.user.profile
+        profile = super().get_object()
+        if self.action in [
+            "update", "partial_update", "destroy"
+        ] and profile.user != self.request.user:
+            raise PermissionDenied("You can only edit your profile.")
+        return profile
 
 
 @extend_schema_view(
