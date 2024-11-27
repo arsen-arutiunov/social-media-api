@@ -74,6 +74,9 @@ class Like(models.Model):
                              on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        unique_together = ["user", "post"]
+
     def __str__(self):
         return f"Liked: {self.user} -> {self.post}"
 
