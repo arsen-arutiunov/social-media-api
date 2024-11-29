@@ -1,10 +1,14 @@
+import os
+
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from SocialMediaAPI import settings
 from social_media.models import (
     Profile,
     Follow,
@@ -177,14 +181,45 @@ class AuthenticatedSocialMediaAPITests(TestCase):
         )
         self.assertEqual(profile.bio, None)
 
+
+    def test_follow_creation(self):
+        user2 = USER.objects.create_user(
+            email="test2@test.test",
+            password="<PASSWORD>",
+        )
+        follow = Follow.objects.create(follower=self.user,
+                                       following=user2)
+        self.assertEqual(follow.follower, self.user)
+        self.assertEqual(follow.following, user2)
+
+    def test_follow_self(self):
+        with self.assertRaises(ValidationError):
+            Follow.objects.create(follower=self.user, following=self.user)
+
+
+class ProfileImageUploadTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_superuser(
+            "admin@myproject.com", "password"
+        )
+        self.client.force_authenticate(self.user)
+
     def test_profile_picture_upload(self):
         image = SimpleUploadedFile(
             name="test_image.jpg",
             content=b"file_content",
             content_type="image/jpeg"
         )
-        profile = sample_profile(user=self.user,
-                                 profile_picture=image)
-        self.assertEqual(profile.profile_picture.name,
-                         "profile_pics/test_image.jpg")
+        profile = sample_profile(user=self.user, profile_picture=image)
+        self.assertTrue(
+            profile.profile_picture.name.startswith("profile_pics/test_image")
+        )
 
+    def tearDown(self):
+        profile = Profile.objects.filter(user=self.user).first()
+        if profile and profile.profile_picture:
+            file_path = os.path.join(settings.MEDIA_ROOT,
+                                     profile.profile_picture.name)
+            if os.path.exists(file_path):
+                os.remove(file_path)
