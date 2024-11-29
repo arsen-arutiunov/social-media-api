@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from user.models import User
@@ -33,6 +34,15 @@ class Follow(models.Model):
         User, related_name="followers", on_delete=models.CASCADE
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def clean(self):
+        if self.follower == self.following:
+            raise ValidationError("Users cannot follow themselves.")
+
+    def save(self, *args, **kwargs):
+        # Ensure `clean` is called before saving
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Followed: {self.follower} -> {self.following}"
