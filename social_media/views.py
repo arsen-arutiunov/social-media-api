@@ -240,20 +240,25 @@ class PostViewSet(viewsets.ModelViewSet):
 
 @extend_schema_view(
     retrieve=extend_schema(
-        summary="Get a hashtag by id", description="Return a hashtag by ID."
+        summary="Get a hashtag by id",
+        description="Return a hashtag by ID."
     ),
     update=extend_schema(
-        summary="Update a hashtag by id", description="Update a hashtag by ID."
+        summary="Update a hashtag by id",
+        description="Update a hashtag by ID."
     ),
     partial_update=extend_schema(
         summary="Partial update a hashtag by id",
         description="Partially update hashtag by ID.",
     ),
     destroy=extend_schema(
-        summary="Delete a hashtag by id", description="Delete a hashtag by ID."
+        summary="Delete a hashtag by id",
+        description="Delete a hashtag by ID."
     ),
-    create=extend_schema(summary="Create a hashtag", description="Create new hashtag."),
-    list=extend_schema(summary="List all hashtags", description="Return all hashtags."),
+    create=extend_schema(summary="Create a hashtag",
+                         description="Create new hashtag."),
+    list=extend_schema(summary="List all hashtags",
+                       description="Return all hashtags."),
 )
 class HashtagViewSet(viewsets.ModelViewSet):
     queryset = Hashtag.objects.all()
