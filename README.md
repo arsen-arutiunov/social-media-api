@@ -83,3 +83,44 @@ This project is a backend API for a social media application built with Django a
 - Like a post: `POST /api/social-media/likes/`
 - Unlike a post: `DELETE /api/social-media/likes/<id>/`
 - List liked posts: `GET /api/social-media/likes/`
+
+### Test Suite Description
+
+The project includes a comprehensive test suite to ensure the reliability and correctness of the application. The test suite is divided into the following sections:
+
+### 1. Unauthenticated Tests
+-	Verifies that API endpoints enforce authentication.
+-	Example: Checking that accessing the profile list without authentication returns a 401 Unauthorized response.
+
+### 2. Authenticated Tests
+**Profile Tests:**
+- Creating, retrieving, and filtering profiles.
+- Testing unique constraints (e.g., unique usernames).
+- Verifying model properties such as full_name.
+
+**Follow Tests:**
+- Creating follows and preventing self-follows.
+
+**Post Tests:**
+- Creating posts with and without media files.
+- Associating posts with hashtags.
+
+**Hashtag Tests:**
+- Creating hashtags.
+- Validating relationships between hashtags and posts.
+
+**Like Tests:**
+- Liking posts and enforcing unique likes.
+
+**Comment Tests:**
+- Creating and editing comments.
+
+**Cascade Deletion Tests:**
+- Ensuring related models are correctly deleted when a user is removed.
+
+### 3. Profile Image Upload Tests
+- Tests for uploading and managing profile pictures.
+- Ensures uploaded images are stored in the correct directory and cleans up after tests.
+
+### 4. Utilities and Helpers
+- Reusable utility functions like sample_profile, sample_post, and others to simplify test creation.
