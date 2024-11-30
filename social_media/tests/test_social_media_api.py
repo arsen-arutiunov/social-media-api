@@ -238,6 +238,18 @@ class AuthenticatedSocialMediaAPITests(TestCase):
         with self.assertRaises(IntegrityError):
             sample_like(user=self.user, post=post)
 
+    def test_comment_creation(self):
+        comment = sample_comment(user=self.user,
+                                 post=sample_post(user=self.user))
+        self.assertEqual(comment.content, "test")
+
+    def test_comment_edit(self):
+        comment = sample_comment(user=self.user,
+                                 post=sample_post(user=self.user))
+        comment.content = "Edited comment"
+        comment.save()
+        self.assertEqual(comment.content, "Edited comment")
+
 
 class ProfileImageUploadTests(TestCase):
     def setUp(self):
