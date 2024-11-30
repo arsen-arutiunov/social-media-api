@@ -84,7 +84,10 @@ class Like(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ["user", "post"]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "post"],
+                                    name="unique_like")
+        ]
 
     def __str__(self):
         return f"Liked: {self.user} -> {self.post}"
