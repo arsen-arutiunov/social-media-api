@@ -187,14 +187,32 @@ class AuthenticatedSocialMediaAPITests(TestCase):
             email="test2@test.test",
             password="<PASSWORD>",
         )
-        follow = Follow.objects.create(follower=self.user,
-                                       following=user2)
+        follow = sample_follow(follower=self.user,
+                               following=user2)
         self.assertEqual(follow.follower, self.user)
         self.assertEqual(follow.following, user2)
 
     def test_follow_self(self):
         with self.assertRaises(ValidationError):
-            Follow.objects.create(follower=self.user, following=self.user)
+            sample_follow(follower=self.user,
+                          following=self.user)
+
+    def test_post_creation(self):
+        post = sample_post(user=self.user)
+        self.assertEqual(post.content, "test")
+        self.assertEqual(post.user, self.user)
+
+    def test_post_media(self):
+        media_file = SimpleUploadedFile(name="test_image.jpg",
+                                        content=b"file_content")
+        post = sample_post(user=self.user, media=media_file)
+        self.assertTrue(post.media)
+
+    def test_post_with_hashtags(self):
+        hashtag = sample_hashtag()
+        post = sample_post(user=self.user)
+        post.hashtags.add(hashtag)
+        self.assertIn(hashtag, post.hashtags.all())
 
 
 class ProfileImageUploadTests(TestCase):
