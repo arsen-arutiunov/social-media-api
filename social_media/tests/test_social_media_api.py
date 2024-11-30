@@ -3,6 +3,7 @@ import os
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -223,6 +224,19 @@ class AuthenticatedSocialMediaAPITests(TestCase):
         post = sample_post(user=self.user)
         post.hashtags.add(hashtag)
         self.assertIn(post, hashtag.posts.all())
+
+    def test_like_creation(self):
+        post = sample_post(user=self.user)
+        like = sample_like(user=self.user, post=post)
+        self.assertEqual(like.user, self.user)
+        self.assertEqual(like.post, post)
+
+    def test_unique_like(self):
+        post = sample_post(user=self.user)
+        sample_like(user=self.user, post=post)
+
+        with self.assertRaises(IntegrityError):
+            sample_like(user=self.user, post=post)
 
 
 class ProfileImageUploadTests(TestCase):
