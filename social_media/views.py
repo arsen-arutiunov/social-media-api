@@ -153,7 +153,9 @@ class FollowViewSet(
 
     @staticmethod
     def _get_follow_queryset(user, related_name):
-        return User.objects.filter(**{f"{related_name}__follower": user}).distinct()
+        return User.objects.filter(
+            **{f"{related_name}__follower": user}
+        ).distinct()
 
     def following_list(self, request, *args, **kwargs):
         queryset = self._get_follow_queryset(request.user, "following")
