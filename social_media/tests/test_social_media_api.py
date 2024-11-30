@@ -250,6 +250,17 @@ class AuthenticatedSocialMediaAPITests(TestCase):
         comment.save()
         self.assertEqual(comment.content, "Edited comment")
 
+    def test_cascade_delete_user(self):
+        user = USER.objects.create_user(
+            email="testuser@example.com",
+            password="password123"
+        )
+        user_id = user.id
+        sample_profile(user=user)
+        user.delete()
+
+        self.assertFalse(Profile.objects.filter(user_id=user_id).exists())
+
 
 class ProfileImageUploadTests(TestCase):
     def setUp(self):
