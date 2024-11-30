@@ -26,7 +26,6 @@ from social_media.serializers import (
 
 USER = get_user_model()
 PROFILE_URL = reverse("social_media:profile-list")
-POST_URL = reverse("social_media:post-list")
 
 
 def sample_profile(**params):
@@ -181,7 +180,6 @@ class AuthenticatedSocialMediaAPITests(TestCase):
             last_name="User",
         )
         self.assertEqual(profile.bio, None)
-
 
     def test_follow_creation(self):
         user2 = USER.objects.create_user(
