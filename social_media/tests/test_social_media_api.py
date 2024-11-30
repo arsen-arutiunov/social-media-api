@@ -214,6 +214,16 @@ class AuthenticatedSocialMediaAPITests(TestCase):
         post.hashtags.add(hashtag)
         self.assertIn(hashtag, post.hashtags.all())
 
+    def test_hashtag_creation(self):
+        hashtag = sample_hashtag()
+        self.assertEqual(hashtag.name, "test")
+
+    def test_hashtag_with_posts(self):
+        hashtag = sample_hashtag()
+        post = sample_post(user=self.user)
+        post.hashtags.add(hashtag)
+        self.assertIn(post, hashtag.posts.all())
+
 
 class ProfileImageUploadTests(TestCase):
     def setUp(self):
